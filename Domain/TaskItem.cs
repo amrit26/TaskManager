@@ -13,7 +13,7 @@ namespace TaskManager.Api.Domain
         public string? Description { get; set; }
         
         public TaskStatus Status { get; set; } = TaskStatus.NotStarted;
-        public DateTimeOffset DueAt { get; set; }
-        public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+        public DateTime DueAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

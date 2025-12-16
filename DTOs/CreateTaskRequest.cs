@@ -6,5 +6,5 @@ public record CreateTaskRequest(
     string Title,
     string? Description,
     TaskStatus Status,
-    DateTimeOffset DueAt
+    DateTime DueAt
 );

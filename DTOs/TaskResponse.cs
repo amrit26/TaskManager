@@ -7,6 +7,6 @@ public record TaskResponse(
     string Title,
     string? Description,
     TaskStatus Status,
-    DateTimeOffset DueAt,
-    DateTimeOffset CreatedAt
+    DateTime DueAt,
+    DateTime CreatedAt
 );

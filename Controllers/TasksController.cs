@@ -14,7 +14,7 @@ public class TasksController : ControllerBase
 
     [HttpPost]
     [ProducesResponseType(typeof(TaskResponse), StatusCodes.Status201Created)]
-    public async Task<IActionResult> Create([FromBody] CreateTaskRequest request, CancellationToken ct)
+    public async Task<IActionResult> Create(CreateTaskRequest request, CancellationToken ct)
     {
         var created = await _service.CreateAsync(request, ct);
         return CreatedAtAction(nameof(GetById), new { id = created.Id}, created);
