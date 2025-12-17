@@ -8,6 +8,15 @@ using TaskManager.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Controllers + JSON enums as strings
+builder.Services.AddControllers()
+    .AddJsonOptions(o =>
+        o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 // CORS
 builder.Services.AddCors(options =>
 {
@@ -17,18 +26,10 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
-// Controllers + JSON enums as strings
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-
-// Swagger
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// DbContext
+// DbContext (prefer config; fallback to file under App_Data)
+var dbPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "tasks.db");
 builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseSqlite($"Data Source={Path.Combine(builder.Environment.ContentRootPath, "App_Data", "tasks.db")}"));
+    opt.UseSqlite($"Data Source={dbPath}"));
 
 // DI
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
@@ -43,34 +44,20 @@ builder.Services.AddProblemDetails(options =>
     options.IncludeExceptionDetails = (ctx, ex) => builder.Environment.IsDevelopment();
     options.MapToStatusCode<ArgumentException>(StatusCodes.Status400BadRequest);
     options.MapToStatusCode<InvalidOperationException>(StatusCodes.Status409Conflict);
-    options.MapToStatusCode<Exception>(StatusCodes.Status500InternalServerError);
 });
 
 var app = builder.Build();
 
-// ---- DB initialization BEFORE handling requests ----
+// Ensure SQLite folder exists + apply schema via EF
 using (var scope = app.Services.CreateScope())
 {
+    var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
+    Directory.CreateDirectory(Path.Combine(env.ContentRootPath, "App_Data"));
+
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-    // Ensure db file exists
     db.Database.EnsureCreated();
-
-    // Ensure Tasks table exists (no migrations)
-    db.Database.ExecuteSqlRaw("""
-        CREATE TABLE IF NOT EXISTS Tasks (
-            Id TEXT PRIMARY KEY,
-            Title TEXT NOT NULL,
-            Description TEXT,
-            Status INTEGER NOT NULL,
-            DueAt TEXT NOT NULL,
-            CreatedAt TEXT NOT NULL
-        );
-    """);
 }
 
-// Middleware pipeline
-app.UseCors("Frontend");
 app.UseProblemDetails();
 
 if (app.Environment.IsDevelopment())
@@ -80,6 +67,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("Frontend");
 
 app.MapControllers();
 
